@@ -48,12 +48,26 @@ sub check {
 sub run {
     my ($self, %params) = @_;
 
-    my $host        = $params{host};
+    # required host
+    my $host          = $params{host};
+    # command related params
+    my $command       = $params{command};
+    my $stdin         = $params{stdin};
     # Get our description of the connection.
-    my $user        = $params{user};
-    my $name        = $params{name};
-    my $target      = ( $user ? $user.'@' : '' ).$host;
-    my $description = $name ? "$name ($target) SSH" : "$target SSH";
+    my $user          = $params{user};
+    my $name          = $params{name};
+    my $target        = ( $user ? $user.'@' : '' ).$host;
+    my $description   = $name ? "$name ($target) SSH" : "$target SSH";
+
+    my $return_critical = sub {
+        my ( $error, $add_args ) = @_;
+
+        return {
+            status => 'CRITICAL',
+            info   => "Error for $description: $error",
+            %{ $add_args // {} },
+        };
+    };
 
     # connect to SSH
     my $ssh;
@@ -62,16 +76,37 @@ sub run {
         local $SIG{__DIE__};
         $ssh = $self->ssh_connect( \%params );
     };
-    return {
-        status => 'CRITICAL',
-        info   => "Error for $description: $@",
-    } if $@;
+    return $return_critical->( $@ ) if $@;
 
     # if there were no errors, it should've connected
     return {
         status => 'OK',
         info   => "Successful connection for $description",
-    }
+    } unless $command;
+
+    # run command if exists
+    my $results;
+    eval {
+        local $SIG{__DIE__};
+        $results = $self->run_command(
+            $ssh, $command, $stdin
+        );
+    };
+    return $return_critical->( $@ ) if $@;
+
+    # return additional arguements whether it's an error
+    my $add_arg = {
+        command => $command,
+        map { $_ => $results->{ $_ } } qw( stdout stderr exit_code )
+    };
+    return $return_critical->( "Error running '$command'\n".$results->{stderr},
+            $add_arg )
+        if $results->{exit_code};
+    return {
+        status  => 'OK',
+        info    => "Successful connection for $description: Ran '$command'",
+        %$add_arg
+    };
 }
 
 sub ssh_connect {
@@ -86,9 +121,23 @@ sub ssh_connect {
     );
 
     my $ssh = Net::SSH::Perl->new( $host, %ssh_params );
-    $ssh->login($user, $password);
+    $ssh->login( $user, $password );
 
     return $ssh;
+}
+
+sub run_command {
+    my $self = shift;
+    my $ssh  = shift;
+    my ( $command, $stdin ) = @_;
+
+    my ( $stdout_string, $stderr, $exit_code ) = $ssh->cmd( $command, $stdin );
+
+    return {
+        stdout    => $stdout_string,
+        stderr    => $stderr,
+        exit_code => $exit_code
+    };
 }
 
 1;
