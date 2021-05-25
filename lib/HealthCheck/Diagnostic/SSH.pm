@@ -7,7 +7,6 @@ use parent 'HealthCheck::Diagnostic';
 
 use Net::SSH::Perl;
 
-use Data::Dumper;
 # ABSTRACT: Verify SSH connectivity to specified host
 # VERSION
 

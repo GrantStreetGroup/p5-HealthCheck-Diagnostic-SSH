@@ -6,8 +6,6 @@ use Test::MockModule;
 use Test::Differences;
 use Sys::Hostname qw(hostname);
 
-use Data::Dumper;
-
 BEGIN { use_ok('HealthCheck::Diagnostic::SSH') };
 
 diag(qq(HealthCheck::Diagnostic::SSH Perl $], $^X));
@@ -78,6 +76,21 @@ diag(qq(HealthCheck::Diagnostic::SSH Perl $], $^X));
             status => 'OK',
             info   => "Successful connection for $name ($user\@$host) SSH"
         }, "Healthcheck passed with correct display";
+
+    # run commands that have a specific type of output
+    $res = $hc->check( command => "date +\"%T\"" );
+    is $res->{status}, 'OK', "HealthCheck ran with command input";
+    like $res->{stdout}, qr/[0-2][0-9]:[0-5][0-9]:[0-5][0-9]/
+        ,"Stdout shows proper output based on the command input";
+
+    # run commands to generate errors
+    my $command = 'perl -e "warn q{error!}; exit(1)"';
+    $res = $hc->check( command => $command );
+    is $res->{status}, 'CRITICAL', 'Healthcheck failed correctly';
+    is $res->{exit_code}, 1, 'Healthcheck exit code presented correctly';
+    like $res->{stderr}, qr/error!/, 'Healthcheck error captured correctly';
+    like $res->{info}, qr/Error running .*\n.*error!/,
+        'Healthcheck error correctly displayed';
 }
 
 done_testing;
