@@ -7,7 +7,7 @@ use parent 'HealthCheck::Diagnostic';
 
 use Net::SSH::Perl;
 
-# ABSTRACT: Verify SSH connectivity to specified host
+# ABSTRACT: Verify SSH connectivity to specified host.
 # VERSION
 
 sub new {
@@ -144,15 +144,85 @@ __END__
 
 =head1 SYNOPSIS
 
-Checks and verifies connection to SSH
+Checks and verifies connection to SSH.
+Can optionally run commands through the connection.
 
     my $health_check = HealthCheck->new( checks => [
         HealthCheck::Diagnostic::SSH->new(
-            host    => 'smtp.gmail.com',
-            timeout => 5,
+            host => 'somehost.com',
+            user => 'some_user,
+        )
+    ]);
+
+    my $health_check = HealthCheck->new( checks => [
+        HealthCheck::Diagnostic::SSH->new(
+            host     => 'somehost.com',
+            user     => 'some_user,
+            ssh_args => {
+                identity_files => [ '~/user/somepath/privatefile' ]
+            },
+            command  => 'echo "Hello World!"',
         )
     ]);
 
 
 =head1 DESCRIPTION
 
+Determines if a SSH connection to a host is achievable. Sets the
+C<status> to "OK" if the connection is successful and we can run the optional
+C<command> parameter. The C<status> is set to "UNKNOWN" if required parameters
+are missing. Otherwise, the C<status> is set to "CRITICAL".
+
+=head2 host
+
+The server name to connect to for the test.
+This is required.
+
+=head2 name
+
+A descriptive name for the connection test.
+This gets populated in the resulting C<info> tag.
+
+=head2 user
+
+Optional argument that can get passed into C<login> method of L<Net::SSH::Perl>.
+Represents the authentication user credential for the host.
+
+=head2 password
+
+Optional argument that can get passed into C<login> method of L<Net::SSH::Perl>.
+C<identity_files> in L<ssh_args> can be used to authenticate by default.
+Represents the authentication password credential for the host.
+
+=head2 ssh_args
+
+Optional argument that can get passed into the L<Net::SSH::Perl> constructor.
+Additional SSH connection parameters.
+Only default parameter is the protocol set as 2.
+C<identity_files> can be set in here to authenticate using the files by default.
+
+=head2 command
+
+Optional argument that can get passed into C<cmd> method of L<Net::SSH::Perl>.
+If provided, runs command and outputs it into C<stdout> tag. An error output
+from running the command would result in a non-zero value of C<exit_code> tag
+and error message in C<stderr> tag.
+
+=head2 stdin
+
+Optional argument that can get passed into C<cmd> method of L<Net::SSH::Perl>.
+If provided, it's supplied to the L<command> on standard input.
+
+=head1 DEPENDENCIES
+
+=over 4
+
+=item *
+
+L<HealthCheck::Diagnostic>
+
+=item *
+
+L<Net::SSH::Perl>
+
+=back
