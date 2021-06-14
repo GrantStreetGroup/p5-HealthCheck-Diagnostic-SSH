@@ -5,7 +5,7 @@ use warnings;
 
 use parent 'HealthCheck::Diagnostic';
 
-use Net::SSH::Perl;
+use Net::SSH::Perl ();
 
 # ABSTRACT: Verify SSH connectivity to specified host.
 # VERSION
@@ -38,7 +38,7 @@ sub check {
         id     => $params{'id'},
         label  => $params{'label'},
         status => 'UNKNOWN',
-        info   => "No host specified",
+        info   => "Missing required input: No host specified",
     } unless $params{host};
 
     return $self->SUPER::check(%params);
@@ -59,13 +59,27 @@ sub run {
     my $target        = ( $user ? $user.'@' : '' ).$host;
     my $description   = $name ? "$name ($target) SSH" : "$target SSH";
 
-    my $return_critical = sub {
-        my ( $error, $add_args ) = @_;
+    my $return_hash = sub {
+        my ( $success, $details, $results ) = @_;
+        my $data = {};
+
+        $details = ': '.$details if $details;
+        $details //= '';
+
+        $data = {
+            command => $command,
+            %{ $results // {} },
+        } if $results;
 
         return {
+            status => 'OK',
+            info   => 'Successful connection for '.$description.$details,
+            data   => $data,
+        } if $success;
+        return {
             status => 'CRITICAL',
-            info   => "Error for $description: $error",
-            %{ $add_args // {} },
+            info   => 'Error for '.$description.$details,
+            data   => $data,
         };
     };
 
@@ -76,13 +90,10 @@ sub run {
         local $SIG{__DIE__};
         $ssh = $self->ssh_connect( \%params );
     };
-    return $return_critical->( $@ ) if $@;
+    return $return_hash->( 0, $@ ) if $@;
 
     # if there were no errors, it should've connected
-    return {
-        status => 'OK',
-        info   => "Successful connection for $description",
-    } unless $command;
+    return $return_hash->(1) unless $command;
 
     # run command if exists
     my $results;
@@ -92,21 +103,10 @@ sub run {
             $ssh, $command, $stdin, $returnOutput
         );
     };
-    return $return_critical->( $@ ) if $@;
+    return $return_hash->( 0, $@ ) if $@;
 
-    # return additional arguements whether it's an error
-    my $add_arg = {
-        command => $command,
-        map { $_ => $results->{ $_ } } qw( stdout stderr exit_code )
-    };
-    return $return_critical->( "Error running '$command'\n".$results->{stderr},
-            $add_arg )
-        if $results->{exit_code};
-    return {
-        status  => 'OK',
-        info    => "Successful connection for $description: Ran '$command'",
-        %$add_arg
-    };
+    # return results based on exit_code
+    return $return_hash->( $results->{exit_code} == 0, "Ran '$command'", $results );
 }
 
 sub ssh_connect {
