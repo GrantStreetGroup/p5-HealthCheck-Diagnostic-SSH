@@ -164,6 +164,7 @@ Can optionally run commands through the connection.
                 identity_files => [ '~/user/somepath/privatefile' ]
             },
             command  => 'echo "Hello World!"',
+            display  => 1,
         )
     ]);
 
@@ -190,6 +191,8 @@ This gets populated in the resulting C<info> tag.
 Optional argument that can get passed into C<login> method of L<Net::SSH::Perl>.
 Represents the authentication user credential for the host.
 
+For more information, see L<Net::SSH::Perl/login>.
+
 =head2 password
 
 Optional argument that can get passed into C<login> method of L<Net::SSH::Perl>.
@@ -203,17 +206,28 @@ Additional SSH connection parameters.
 Only default parameter is the protocol set as 2.
 C<identity_files> can be set in here to authenticate using the files by default.
 
+For more information on the possible arguments, refer to L<Net::SSH::Perl>.
+
 =head2 command
 
 Optional argument that can get passed into C<cmd> method of L<Net::SSH::Perl>.
-If provided, runs command and outputs it into C<stdout> tag. An error output
-from running the command would result in a non-zero value of C<exit_code> tag
-and error message in C<stderr> tag.
+If provided, runs command and prints output into C<data> depending on the
+value of L</display> input. An error output from running the command would
+result in a non-zero value of C<data->exit_code> which is always provided.
+If C<display> is enabled, output of the command is shown in C<data->stdout>
+and an error message, if any, is stored in C<data->stderr>.
 
 =head2 stdin
 
 Optional argument that can get passed into C<cmd> method of L<Net::SSH::Perl>.
 If provided, it's supplied to the L<command> on standard input.
+
+=head2 display
+
+Optional argument that determines whether output of L<Net::SSH::Perl>->C<cmd>
+should be displayed. If provided a truthy value, (preferrably 1 for clarity)
+the C<data> field of the output will be populated with C<stdout> and C<stderr>.
+If ommitted, only the C<exit_code> will show by default as noted in L</command>.
 
 =head1 DEPENDENCIES
 
