@@ -52,7 +52,7 @@ sub run {
     # command related params
     my $command       = $params{command};
     my $stdin         = $params{stdin};
-    my $returnOutput  = $params{display};
+    my $return_output = $params{display};
     # Get our description of the connection.
     my $user          = $params{user};
     my $name          = $params{name};
@@ -100,7 +100,7 @@ sub run {
     eval {
         local $SIG{__DIE__};
         $results = $self->run_command(
-            $ssh, $command, $stdin, $returnOutput
+            $ssh, $command, $stdin, $return_output
         );
     };
     return $return_hash->( 0, $@ ) if $@;
@@ -129,11 +129,11 @@ sub ssh_connect {
 sub run_command {
     my $self = shift;
     my $ssh  = shift;
-    my ( $command, $stdin, $returnOutput ) = @_;
+    my ( $command, $stdin, $return_output ) = @_;
 
     my ( $stdout_string, $stderr, $exit_code ) = $ssh->cmd( $command, $stdin );
 
-    return { exit_code => $exit_code } unless $returnOutput;
+    return { exit_code => $exit_code } unless $return_output;
     return {
         stdout    => $stdout_string,
         stderr    => $stderr,
