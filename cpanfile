@@ -8,7 +8,6 @@ requires 'HealthCheck::Diagnostic';
 requires 'Net::SSH::Perl';
 
 on test => sub {
-    requires 'Test::Differences';
     requires 'Test::MockModule';
     requires 'Test::More';
 };
