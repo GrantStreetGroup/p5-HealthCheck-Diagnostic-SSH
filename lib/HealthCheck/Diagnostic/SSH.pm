@@ -63,8 +63,8 @@ sub run {
         my ( $success, $details, $results ) = @_;
         my $data = {};
 
-        $details = ': '.$details if $details;
         $details //= '';
+        $details .= ": $details" if $details;
 
         $data = {
             command => $command,
@@ -73,12 +73,12 @@ sub run {
 
         return {
             status => 'OK',
-            info   => 'Successful connection for '.$description.$details,
+            info   => "Successful connection for $description$details",
             data   => $data,
         } if $success;
         return {
             status => 'CRITICAL',
-            info   => 'Error for '.$description.$details,
+            info   => "Error for $description$details",
             data   => $data,
         };
     };
