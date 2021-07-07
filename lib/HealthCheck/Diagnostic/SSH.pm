@@ -52,7 +52,7 @@ sub run {
     # command related params
     my $command       = $params{command};
     my $stdin         = $params{stdin};
-    my $return_output = $params{display};
+    my $return_output = $params{return_output};
     # Get our description of the connection.
     my $user          = $params{user};
     my $name          = $params{name};
@@ -167,8 +167,8 @@ Can optionally run commands through the connection.
             ssh_args => {
                 identity_files => [ '~/user/somepath/privatefile' ]
             },
-            command  => 'echo "Hello World!"',
-            display  => 1,
+            command       => 'echo "Hello World!"',
+            return_output => 1,
         )
     ]);
 
@@ -226,7 +226,7 @@ and an error message, if any, is stored in C<data->stderr>.
 Optional argument that can get passed into C<cmd> method of L<Net::SSH::Perl>.
 If provided, it's supplied to the L<command> on standard input.
 
-=head2 display
+=head2 return_output
 
 Optional argument that determines whether output of L<Net::SSH::Perl>->C<cmd>
 should be displayed. If provided a truthy value, (preferrably 1 for clarity)

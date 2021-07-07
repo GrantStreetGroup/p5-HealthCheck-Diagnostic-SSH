@@ -98,13 +98,13 @@ is $res, {
     }, "Healthcheck passed with correct display";
 
 # check that it can display cmd outputs
-$res = $hc->check( command => "good command", display => 1 );
+$res = $hc->check( command => "good command", return_output => 1 );
 is $res->{status}, 'OK', "HealthCheck ran with command input";
 is $res->{data}->{stdout}, 'sample std_out',
     "Stdout shows proper output based on the command input";
 
 # run commands that generate errors
-$res = $hc->check( command => 'throw error' , display => 1 );
+$res = $hc->check( command => 'throw error' , return_output => 1 );
 is $res->{status}, 'CRITICAL', 'Healthcheck failed correctly';
 is $res->{data}->{exit_code}, 255, 'Healthcheck exit code presented correctly';
 is $res->{data}->{stderr}, 'error msg at line#', 'Healthcheck error saved properly';
