@@ -60,22 +60,21 @@ sub run {
     my $description   = $name ? "$name ($target) SSH" : "$target SSH";
 
     my $return_hash = sub {
-        my ( $success, $details, $results ) = @_;
+        my ( $params ) = @_;
         my $data = {};
-
-        $details //= '';
-        $details .= ": $details" if $details;
+        my $details = $params->{details} // '';
+        $details = ": $details" if $details;
 
         $data = {
             command => $command,
-            %{ $results // {} },
-        } if $results;
+            %{ $params->{results} // {} },
+        } if defined $params->{results};
 
         return {
             status => 'OK',
             info   => "Successful connection for $description$details",
             data   => $data,
-        } if $success;
+        } if $params->{success};
         return {
             status => 'CRITICAL',
             info   => "Error for $description$details",
@@ -90,10 +89,10 @@ sub run {
         local $SIG{__DIE__};
         $ssh = $self->ssh_connect( \%params );
     };
-    return $return_hash->( 0, $@ ) if $@;
+    return $return_hash->( { success => 0, details => $@ } ) if $@;
 
     # if there were no errors, it should've connected
-    return $return_hash->(1) unless $command;
+    return $return_hash->( { success => 1 } ) unless $command;
 
     # run command if exists
     my $results;
@@ -103,10 +102,15 @@ sub run {
             $ssh, $command, $stdin, $return_output
         );
     };
-    return $return_hash->( 0, $@ ) if $@;
+    return $return_hash->( { success => 0, details => $@ } ) if $@;
 
     # return results based on exit_code
-    return $return_hash->( $results->{exit_code} == 0, "Ran '$command'", $results );
+    return $return_hash->(
+        {
+            success  => $results->{exit_code} == 0,
+            details => "Ran '$command'",
+            results => $results
+        } );
 }
 
 sub ssh_connect {
