@@ -1,13 +1,12 @@
 use strict;
 use warnings;
 
-use Test::More import => [ qw( use_ok is like is_deeply done_testing diag ) ];
-use Test::MockModule ();
-use Sys::Hostname qw(hostname);
+use Test2::V0 -target => 'HealthCheck::Diagnostic::SSH',
+    qw( ok is like mock diag done_testing );
 
-BEGIN { use_ok('HealthCheck::Diagnostic::SSH') };
+diag(qq($CLASS Perl $], $^X));
 
-diag(qq(HealthCheck::Diagnostic::SSH Perl $], $^X));
+ok CLASS, "Loaded $CLASS";
 
 # check that expected errors come out properly
 my $hc = HealthCheck::Diagnostic::SSH->new;
@@ -19,31 +18,37 @@ is $res->{info}, "Missing required input: No host specified",
 
 # Mock a SSH connection and its relevant subroutines for this healthcheck to
 # verify output is correct
-my $mock = Test::MockModule->new( 'Net::SSH::Perl' );
-$mock->mock( new => sub {
-    # Mock the SSH module so that we can pretend to have bad hosts.
-        my ( $class, $host, %params ) = @_;
-        # In-accessible hosts should not be reached.
-        die "Net::SSH::Perl: Bad host name: $host"
-            if $host eq 'inaccessible-host';
+my $mock_SSH = mock 'Net::SSH::Perl' => (
+    override => [
+        # Mock the SSH module so that we can pretend to have bad hosts.
+        new   => sub {
+            my ( $class, $host, %params ) = @_;
+            # In-accessible hosts should not be reached.
+            die "Net::SSH::Perl: Bad host name: $host"
+                if $host eq 'inaccessible-host';
 
-        $params{host} = $host;
+            $params{host} = $host;
 
-        return bless( \%params, 'Net::SSH::Perl' );
-    })->mock( login => sub {
-    # Mock the SSH module so that we can pretend to have bad logins
-        my ( $class, $user ) = @_;
-        my $host = $class->{host};
+            return bless( \%params, 'Net::SSH::Perl' );
+        },
+        # Mock the SSH module so that we can pretend to have bad logins
+        login => sub {
+            my ( $class, $user ) = @_;
+            my $host = $class->{host};
 
-        die "Permission denied for $user at $host" if $user eq 'invalid-user';
-    })->mock( cmd => sub {
-    # Mock the SSH module so that we can pretend to throw errors on commands
-    # ran through a SSH connection
-        my ( $class, $command, $stdin ) = @_;
+            die "Permission denied for $user at $host"
+                if $user eq 'invalid-user';
+        },
+        # Mock the SSH module so that we can pretend to throw errors on commands
+        # ran through a SSH connection
+        cmd   => sub {
+            my ( $class, $command, $stdin ) = @_;
 
-        return ( undef, "error msg at line#", 255) if $command eq 'throw error';
-        return ( "sample std_out", undef, 0);
-    }
+            return ( undef, "error msg at line#", 255)
+                if $command eq 'throw error';
+            return ( "sample std_out", undef, 0);
+        },
+    ],
 );
 
 # Run with a bad host name
@@ -71,7 +76,7 @@ my %success_res = (
 
 $hc = HealthCheck::Diagnostic::SSH->new( %default );
 $res = $hc->check;
-is_deeply $res, {
+is $res, {
         %success_res,
         info   => "Successful connection for $user\@$host SSH",
     }, "Healthcheck completed using local user credentials";
@@ -87,7 +92,7 @@ is $res->{status}, 'CRITICAL',
 # override should not persist
 my $name = 'HealthCheck SSH in test';
 $res = $hc->check( name => $name );
-is_deeply $res, {
+is $res, {
         %success_res,
         info   => "Successful connection for $name ($user\@$host) SSH",
     }, "Healthcheck passed with correct display";
@@ -108,7 +113,7 @@ like $res->{info}, qr/Error for .*: Ran .*/,
 
 # check that the stdout and stderr only displays when told to
 $res = $hc->check( command => "good command" );
-is_deeply $res, {
+is $res, {
         %success_res,
         info   => "Successful connection for $user\@$host SSH: Ran 'good command'",
         data   => {
