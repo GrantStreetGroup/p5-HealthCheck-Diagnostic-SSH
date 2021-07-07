@@ -71,7 +71,6 @@ my %success_res = (
     id     => 'ssh',
     label  => 'SSH',
     status => 'OK',
-    data   => {},
 );
 
 $hc = HealthCheck::Diagnostic::SSH->new( %default );

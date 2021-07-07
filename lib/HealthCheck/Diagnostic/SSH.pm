@@ -89,10 +89,16 @@ sub run {
         local $SIG{__DIE__};
         $ssh = $self->ssh_connect( %params );
     };
-    return $return_hash->( { success => 0, details => $@ } ) if $@;
+    return {
+        status => 'CRITICAL',
+        info   => "Error for $description: $@",
+    } if $@;
 
     # if there were no errors, it should've connected
-    return $return_hash->( { success => 1 } ) unless $command;
+    return {
+        status => 'OK',
+        info   => "Successful connection for $description",
+    } unless $params{command};
 
     # run command if exists
     my $results;
