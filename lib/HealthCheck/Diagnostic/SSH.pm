@@ -53,29 +53,6 @@ sub run {
     my $target        = ( $user ? $user.'@' : '' ).$params{host};
     my $description   = $name ? "$name ($target) SSH" : "$target SSH";
 
-    my $return_hash = sub {
-        my ( $params ) = @_;
-        my $data = {};
-        my $details = $params->{details} // '';
-        $details = ": $details" if $details;
-
-        $data = {
-            command => $command,
-            %{ $params->{results} // {} },
-        } if defined $params->{results};
-
-        return {
-            status => 'OK',
-            info   => "Successful connection for $description$details",
-            data   => $data,
-        } if $params->{success};
-        return {
-            status => 'CRITICAL',
-            info   => "Error for $description$details",
-            data   => $data,
-        };
-    };
-
     # connect to SSH
     my $ssh;
     local $@;
@@ -95,17 +72,17 @@ sub run {
     } unless $params{command};
 
     # run command if exists
-    my $results = $self->run_command( $ssh, %params );
-    return $return_hash->( { success => 0, details => $results{error} } )
-        if $results{error};
+    my %res = $self->run_command( $ssh, %params );
+    return {
+        status => 'CRITICAL',
+        info   => "$description: $res{error}",
+    } if $res{error};
 
-    # return results based on exit_code
-    return $return_hash->(
-        {
-            success  => $results->{exit_code} == 0,
-            details => "Ran '$params{command}'",
-            results => $results
-        } );
+    return {
+        status => $res{exit_code} == 0 ? 'OK' : 'CRITICAL',
+        info   => "$description <$params{command}> exit is $res{exit_code}",
+        $params{return_output} ? ( data => \%res ) : (),
+    };
 }
 
 sub ssh_connect {

@@ -107,18 +107,14 @@ $res = $hc->check( command => 'throw error' , return_output => 1 );
 is $res->{status}, 'CRITICAL', 'Healthcheck failed correctly';
 is $res->{data}->{exit_code}, 255, 'Healthcheck exit code presented correctly';
 is $res->{data}->{stderr}, 'error msg at line#', 'Healthcheck error saved properly';
-like $res->{info}, qr/Error for .*: Ran .*/,
+is $res->{info}, "$user\@$host SSH <throw error> exit is 255",
     'Healthcheck error correctly displayed';
 
 # check that the stdout and stderr only displays when told to
 $res = $hc->check( command => "good command" );
 is $res, {
         %success_res,
-        info   => "Successful connection for $user\@$host SSH: Ran 'good command'",
-        data   => {
-            exit_code => 0,
-            command   => 'good command'
-        },
+        info => "$user\@$host SSH <good command> exit is 0",
     }, 'Commandline results only show if "display" input is specified';
 
 done_testing;
