@@ -95,14 +95,9 @@ sub run {
     } unless $params{command};
 
     # run command if exists
-    my $results;
-    eval {
-        local $SIG{__DIE__};
-        $results = $self->run_command(
-            $ssh, $params{command}, $params{stdin}, $return_output,
-        );
-    };
-    return $return_hash->( { success => 0, details => $@ } ) if $@;
+    my $results = $self->run_command( $ssh, %params );
+    return $return_hash->( { success => 0, details => $results{error} } )
+        if $results{error};
 
     # return results based on exit_code
     return $return_hash->(
@@ -131,18 +126,23 @@ sub ssh_connect {
 }
 
 sub run_command {
-    my $self = shift;
-    my $ssh  = shift;
-    my ( $command, $stdin, $return_output ) = @_;
+    my ( $self, $ssh, %params ) = @_;
+    my %res;
 
-    my ( $stdout_string, $stderr, $exit_code ) = $ssh->cmd( $command, $stdin );
-
-    return { exit_code => $exit_code } unless $return_output;
-    return {
-        stdout    => $stdout_string,
-        stderr    => $stderr,
-        exit_code => $exit_code
+    local $@;
+    eval {
+        local $SIG{__DIE__};
+        my ($stdout, $stderr, $exit_code) = $ssh->cmd(
+            $params{command},
+            $params{stdin} // '',
+        );
+        $res{ stdout }    = $stdout;
+        $res{ stderr }    = $stderr;
+        $res{ exit_code } = $exit_code;
     };
+    $res{ error } = $@ if $@;
+
+    return %res;
 }
 
 1;
