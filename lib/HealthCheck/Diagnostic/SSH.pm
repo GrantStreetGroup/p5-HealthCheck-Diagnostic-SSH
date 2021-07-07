@@ -87,7 +87,7 @@ sub run {
     local $@;
     eval {
         local $SIG{__DIE__};
-        $ssh = $self->ssh_connect( \%params );
+        $ssh = $self->ssh_connect( %params );
     };
     return $return_hash->( { success => 0, details => $@ } ) if $@;
 
@@ -114,14 +114,14 @@ sub run {
 }
 
 sub ssh_connect {
-    my ( $self, $params ) = @_;
+    my ( $self, %params ) = @_;
 
-    my $host       = $params->{host};
-    my $user       = $params->{user};
-    my $password   = $params->{password};
+    my $host       = $params{host};
+    my $user       = $params{user};
+    my $password   = $params{password};
     my %ssh_params = (
         protocol => 2,
-        %{ $params->{ssh_args} // {} },
+        %{ $params{ssh_args} // {} },
     );
 
     my $ssh = Net::SSH::Perl->new( $host, %ssh_params );
