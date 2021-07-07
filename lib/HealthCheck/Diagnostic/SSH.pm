@@ -47,16 +47,10 @@ sub check {
 sub run {
     my ($self, %params) = @_;
 
-    # required host
-    my $host          = $params{host};
-    # command related params
-    my $command       = $params{command};
-    my $stdin         = $params{stdin};
-    my $return_output = $params{return_output};
     # Get our description of the connection.
     my $user          = $params{user};
     my $name          = $params{name};
-    my $target        = ( $user ? $user.'@' : '' ).$host;
+    my $target        = ( $user ? $user.'@' : '' ).$params{host};
     my $description   = $name ? "$name ($target) SSH" : "$target SSH";
 
     my $return_hash = sub {
@@ -105,7 +99,7 @@ sub run {
     eval {
         local $SIG{__DIE__};
         $results = $self->run_command(
-            $ssh, $command, $stdin, $return_output
+            $ssh, $params{command}, $params{stdin}, $return_output,
         );
     };
     return $return_hash->( { success => 0, details => $@ } ) if $@;
@@ -114,7 +108,7 @@ sub run {
     return $return_hash->(
         {
             success  => $results->{exit_code} == 0,
-            details => "Ran '$command'",
+            details => "Ran '$params{command}'",
             results => $results
         } );
 }
