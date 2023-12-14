@@ -90,6 +90,17 @@ should be displayed. If provided a truthy value, (preferrably 1 for clarity)
 the `data` field of the output will be populated with `stdout` and `stderr`.
 If ommitted, only the `exit_code` will show by default as noted in ["command"](#command).
 
+# INTERNALS
+
+## run\_command
+
+Used internally to run an ssh `cmd` and assemble the result into
+a `data` structure to be used as as part of the Result.
+
+## ssh\_connect
+
+Used internally to instantiate a [Net::SSH::Perl](https://metacpan.org/pod/Net%3A%3ASSH%3A%3APerl) instance
+
 # DEPENDENCIES
 
 - [HealthCheck::Diagnostic](https://metacpan.org/pod/HealthCheck%3A%3ADiagnostic)

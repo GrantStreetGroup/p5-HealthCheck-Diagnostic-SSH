@@ -210,6 +210,17 @@ should be displayed. If provided a truthy value, (preferrably 1 for clarity)
 the C<data> field of the output will be populated with C<stdout> and C<stderr>.
 If ommitted, only the C<exit_code> will show by default as noted in L</command>.
 
+=head1 INTERNALS
+
+=head2 run_command
+
+Used internally to run an ssh C<cmd> and assemble the result into
+a C<data> structure to be used as as part of the Result.
+
+=head2 ssh_connect
+
+Used internally to instantiate a L<Net::SSH::Perl> instance
+
 =head1 DEPENDENCIES
 
 =over 4
